@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Point of Sale System</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: black;
+            color: #00ccff; /* Terminal blue text color */
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #00ccff; /* Terminal blue color for headers */
+        }
+        .hidden {
+            display: none;
+        }
+        button {
+            background-color: #004080; /* Button with darker blue */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0059b3; /* Lighter blue on hover */
+        }
+        input {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #00ccff; /* Input border matching the terminal color */
+            border-radius: 5px;
+            width: calc(100% - 22px);
+            background: black;
+            color: #00ccff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #00ccff;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #004080;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <script
+    chatbot_id="6707ed1df01b6f3045502862"
+    src="https://app.thinkstack.ai/bot/thinkstackai-loader.min.js">
+</script>
+    <div id="login-screen">
+        <h1>Login</h1>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <div id="login-error" style="color: red;"></div>
+    </div>
+
+    <div id="main-menu" class="hidden">
+        <h2>Inventory Management</h2>
+        <button onclick="viewInventory()">View Inventory</button>
+        <button onclick="addInventoryItem()">Add Inventory Item</button>
+        <button onclick="viewPointOfSale()">Point of Sale</button>
+        <button onclick="logout()">Logout</button>
+        <button onclick="viewSettings()">Settings</button>
+    </div>
+
+    <div id="inventory" class="hidden">
+        <h2>Inventory</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Retail Price</th>
+                    <th>Single Price</th>
+                    <th>Quantity</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+        </table>
+        <button onclick="goBackToMenu()">Back to Menu</button>
+    </div>
+
+    <div id="add-item" class="hidden">
+        <h2>Add Inventory Item</h2>
+        <input type="text" id="item-code" placeholder="Item Code">
+        <input type="text" id="item-description" placeholder="Item Description">
+        <input type="number" id="item-retail" placeholder="Retail Price">
+        <input type="number" id="item-single" placeholder="Single Price">
+        <input type="number" id="item-quantity" placeholder="Quantity">
+        <button onclick="addItem()">Add Item</button>
+        <button onclick="goBackToMenu()">Back to Menu</button>
+        <div id="add-item-error" style="color: red;"></div>
+    </div>
+
+    <div id="point-of-sale" class="hidden">
+        <h2>Point of Sale</h2>
+        <button onclick="toggleSelfService()">Enable Self-Service</button>
+        <div id="admin-pos">
+            <h3>Admin POS</h3>
+            <input type="text" id="pos-item-code-admin" placeholder="Item Code">
+            <input type="number" id="pos-quantity-admin" placeholder="Quantity">
+            <button onclick="addToSaleAdmin()">Add to Sale</button>
+            <h3>Current Sale</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Single Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="sale-body-admin"></tbody>
+            </table>
+            <button onclick="completeSaleAdmin()">Complete Sale</button>
+        </div>
+        <button onclick="goBackToMenu()">Back to Menu</button>
+    </div>
+
+    <div id="self-service" class="hidden">
+        <h2>Self-Service POS</h2>
+        <input type="text" id="pos-item-code" placeholder="Item Code">
+        <input type="number" id="pos-quantity" placeholder="Quantity">
+        <button onclick="addToSale()">Add to Sale</button>
+        <h3>Current Sale</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Single Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="sale-body"></tbody>
+        </table>
+        <button onclick="completeSale()">Complete Sale</button>
+        <button onclick="exitSelfService()">Exit Self-Service</button>
+    </div>
+
+    <div id="settings" class="hidden">
+        <h2>Settings</h2>
+        <h3>Add User</h3>
+        <input type="text" id="new-username" placeholder="New Username">
+        <input type="password" id="new-password" placeholder="New Password">
+        <button onclick="addUser()">Add User</button>
+        <div id="user-error" style="color: red;"></div>
+        <h3>Change User Permissions</h3>
+        <input type="text" id="change-username" placeholder="Username">
+        <select id="user-permission">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+        </select>
+        <button onclick="changeUserPermissions()">Change Permissions</button>
+        <div id="permission-error" style="color: red;"></div>
+        <button onclick="goBackToMenu()">Back to Menu</button>
+    </div>
+
+    <script>
+        const users = { admin: "2012" };
+        let currentSale = [];
+        let inventory = loadInventory();
+
+        function loadInventory() {
+            const inventoryJSON = localStorage.getItem('inventory');
+            return inventoryJSON ? JSON.parse(inventoryJSON) : [];
+        }
+
+        function saveInventory() {
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+        }
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            if (users[username] && users[username] === password) {
+                document.getElementById("login-screen").classList.add("hidden");
+                document.getElementById("main-menu").classList.remove("hidden");
+                renderInventory(); // Load inventory on login
+            } else {
+                document.getElementById("login-error").innerText = "Invalid username or password.";
+            }
+        }
+
+        function viewInventory() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("inventory").classList.remove("hidden");
+            renderInventory();
+        }
+
+        function renderInventory() {
+            const inventoryBody = document.getElementById("inventory-body");
+            inventoryBody.innerHTML = ""; // Clear existing rows
+            inventory.forEach((item, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.description}</td>
+                    <td>${item.retail.toFixed(2)}</td>
+                    <td>${item.single.toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td><button onclick="removeItem(${index})">Remove</button></td>
+                `;
+                inventoryBody.appendChild(row);
+            });
+        }
+
+        function addInventoryItem() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("add-item").classList.remove("hidden");
+        }
+
+        function addItem() {
+            const code = document.getElementById("item-code").value;
+            const description = document.getElementById("item-description").value;
+            const retail = parseFloat(document.getElementById("item-retail").value);
+            const single = parseFloat(document.getElementById("item-single").value);
+            const quantity = parseInt(document.getElementById("item-quantity").value);
+
+            if (!code || !description || isNaN(retail) || isNaN(single) || isNaN(quantity)) {
+                document.getElementById("add-item-error").innerText = "Please fill in all fields.";
+                return;
+            }
+
+            const newItem = { code, description, retail, single, quantity };
+            inventory.push(newItem);
+            saveInventory();
+
+            document.getElementById("item-code").value = "";
+            document.getElementById("item-description").value = "";
+            document.getElementById("item-retail").value = "";
+            document.getElementById("item-single").value = "";
+            document.getElementById("item-quantity").value = "";
+
+            renderInventory();
+            goBackToMenu();
+        }
+
+        function goBackToMenu() {
+            document.getElementById("main-menu").classList.remove("hidden");
+            document.getElementById("inventory").classList.add("hidden");
+            document.getElementById("add-item").classList.add("hidden");
+            document.getElementById("point-of-sale").classList.add("hidden");
+            document.getElementById("settings").classList.add("hidden");
+            document.getElementById("self-service").classList.add("hidden");
+        }
+
+        function removeItem(index) {
+            inventory.splice(index, 1);
+            saveInventory();
+            renderInventory();
+        }
+
+        function viewPointOfSale() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("point-of-sale").classList.remove("hidden");
+            resetSale();
+        }
+
+        function toggleSelfService() {
+            document.getElementById("point-of-sale").classList.add("hidden");
+            document.getElementById("self-service").classList.remove("hidden");
+            resetSale();
+        }
+
+        function exitSelfService() {
+            document.getElementById("self-service").classList.add("hidden");
+            document.getElementById("point-of-sale").classList.remove("hidden");
+            resetSale();
+        }
+
+        function resetSale() {
+            currentSale = [];
+            document.getElementById("sale-body").innerHTML = "";
+            document.getElementById("sale-body-admin").innerHTML = "";
+        }
+
+        function addToSale() {
+            const code = document.getElementById("pos-item-code").value;
+            const quantity = parseInt(document.getElementById("pos-quantity").value);
+            const item = inventory.find(i => i.code === code);
+            if (item && quantity <= item.quantity && quantity > 0) {
+                const total = item.single * quantity;
+                currentSale.push({ ...item, quantity, total });
+                item.quantity -= quantity; // Decrease stock quantity
+                saveInventory();
+                renderCurrentSale();
+            }
+            document.getElementById("pos-item-code").value = "";
+            document.getElementById("pos-quantity").value = "";
+        }
+
+        function renderCurrentSale() {
+            const saleBody = document.getElementById("sale-body");
+            saleBody.innerHTML = ""; // Clear existing rows
+            currentSale.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.description}</td>
+                    <td>${item.single.toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.total.toFixed(2)}</td>
+                `;
+                saleBody.appendChild(row);
+            });
+        }
+
+        function completeSale() {
+            const totalAmount = currentSale.reduce((acc, item) => acc + item.total, 0);
+            alert(`Total Sale Amount: $${totalAmount.toFixed(2)}`);
+            resetSale();
+        }
+
+        function addToSaleAdmin() {
+            const code = document.getElementById("pos-item-code-admin").value;
+            const quantity = parseInt(document.getElementById("pos-quantity-admin").value);
+            const item = inventory.find(i => i.code === code);
+            if (item && quantity <= item.quantity && quantity > 0) {
+                const total = item.single * quantity;
+                currentSale.push({ ...item, quantity, total });
+                item.quantity -= quantity; // Decrease stock quantity
+                saveInventory();
+                renderCurrentSaleAdmin();
+            }
+            document.getElementById("pos-item-code-admin").value = "";
+            document.getElementById("pos-quantity-admin").value = "";
+        }
+
+        function renderCurrentSaleAdmin() {
+            const saleBody = document.getElementById("sale-body-admin");
+            saleBody.innerHTML = ""; // Clear existing rows
+            currentSale.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.description}</td>
+                    <td>${item.single.toFixed(2)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.total.toFixed(2)}</td>
+                `;
+                saleBody.appendChild(row);
+            });
+        }
+
+        function completeSaleAdmin() {
+            const totalAmount = currentSale.reduce((acc, item) => acc + item.total, 0);
+            alert(`Total Sale Amount: $${totalAmount.toFixed(2)}`);
+            resetSale();
+        }
+
+        function viewSettings() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("settings").classList.remove("hidden");
+        }
+
+        function addUser() {
+            const username = document.getElementById("new-username").value;
+            const password = document.getElementById("new-password").value;
+            if (username && password) {
+                users[username] = password;
+                document.getElementById("new-username").value = "";
+                document.getElementById("new-password").value = "";
+            } else {
+                document.getElementById("user-error").innerText = "Please fill in all fields.";
+            }
+        }
+
+        function changeUserPermissions() {
+            const username = document.getElementById("change-username").value;
+            const permission = document.getElementById("user-permission").value;
+            if (username) {
+                // Placeholder for changing permissions logic
+                alert(`Changed ${username}'s permission to ${permission}`);
+                document.getElementById("change-username").value = "";
+            } else {
+                document.getElementById("permission-error").innerText = "Please enter a username.";
+            }
+        }
+
+        function logout() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("login-screen").classList.remove("hidden");
+        }
+    </script>
+</body>
+</html
